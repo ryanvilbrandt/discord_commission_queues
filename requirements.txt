@@ -1,2 +1,3 @@
 discord.py
 pandas
+google-api-python-client

@@ -1,22 +1,99 @@
-from re import match
+from enum import Enum
+from typing import Iterable
 
-from discord import Message
-from discord.ext.commands import Context
+from discord import Message, Emoji
+from discord.ext.commands import Bot
+from discord.utils import get as discord_get
+from googleapiclient.discovery import build
 
 from src.db.db import Db
 
-
-def check_version():
-    with Db() as db:
-        db.check_version()
+GOOGLE_SHEETS_DEVELOPER_KEY = None
+SHEET_ID = None
 
 
-def new_list(context, owner: Message.author, message):
-    if message == "":
-        return "I need items to make a list. Put each separate item on a new line."
-    task_names = message.split("\n")
-    with Db() as db:
-        db.add_owner(owner.id, owner.name)
-        task_ids = db.add_tasks(task_names, owner.id)
-        db.new_list(task_ids, owner.id)
-        return f"Created a new list for {owner.name}\n" + print_task_list(db, owner), None, None
+class Reaction(Enum):
+    ACCEPTED = "✅"
+    REJECTED = "❌"
+
+
+class Functions:
+    channels = {
+        "incoming-commissions": None,
+        "current-queues": None,
+        "bot-spam": None,
+    }
+    emoji_cache = {}
+
+    def __init__(self, bot: Bot):
+        self.check_version()
+        self.bot = bot
+
+    def init(self):
+        self.save_channels()
+
+    @staticmethod
+    def check_version():
+        with Db() as db:
+            db.check_version()
+
+    def save_channels(self):
+        channel_list = self.bot.get_all_channels()
+        for channel in channel_list:
+            if channel.name in self.channels:
+                self.channels[channel.name] = channel.id
+        print(self.channels)
+
+    def get_custom_emoji(self, emoji_name: str) -> Emoji:
+        if emoji_name not in self.emoji_cache:
+            for guild in self.bot.guilds:
+                emoji = discord_get(guild.emojis, name=emoji_name)
+                if emoji:
+                    self.emoji_cache[emoji_name] = emoji
+                    break
+            else:
+                raise ValueError("No emoji found for {}".format(emoji_name))
+        return self.emoji_cache[emoji_name]
+
+    async def send_to_channel(self, channel_name: str, text: str, message_name: str = None,
+                              reactions: Iterable[Reaction] = None) -> Message:
+        channel = self.bot.get_channel(self.channels[channel_name])
+        with Db() as db:
+            message, message_id = None, None
+            # Check if message has already been posted, if so get message object and edit instead
+            if message_name:
+                message_id = db.get_message_id(channel_name, message_name)
+                message = await channel.fetch_message(message_id)
+            # If a previous message wasn't retrieved, send a new message, otherwise edit existing message
+            if message is None:
+                message = await channel.send(text)
+            else:
+                await message.edit(content=text)
+            # If a message_name is defined and the message wasn't pulled from an already existing message,
+            # save message_id
+            if message_name and message_id != message.id:
+                db.set_message_id(channel_name, message_name, message.id)
+            # Add reactions if any
+            if reactions:
+                for reaction in reactions:
+                    await message.add_reaction(reaction.value)
+            return message
+
+    def update_commissions_information(self):
+        pass
+
+    def get_commissions_info_from_spreadsheet(self):
+        print("Loading Google Sheet of commission info...")
+        range = "Form Responses 1!A2:L"
+        service = build('sheets', 'v4', developerKey=GOOGLE_SHEETS_DEVELOPER_KEY)
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=SHEET_ID, range=range).execute()
+        print(result)
+        return result
+
+    def update_commissions_db(self):
+        pass
+
+    def update_commissions_messages(self):
+        pass

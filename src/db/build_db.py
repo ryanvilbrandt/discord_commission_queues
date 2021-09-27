@@ -31,6 +31,7 @@ def drop_tables(cur):
     sql = """
         DROP TABLE IF EXISTS version;
         DROP TABLE IF EXISTS commissions;
+        DROP TABLE IF EXISTS message_ids;
     """
     cur.executescript(sql)
 
@@ -53,8 +54,13 @@ def create_tables(cur):
 
     sql = """
     CREATE TABLE IF NOT EXISTS commissions (
-        id INTEGER PRIMARY KEY,
-        ...
+        id INTEGER PRIMARY KEY
+    );
+    CREATE TABLE IF NOT EXISTS message_ids (
+        channel TEXT,
+        name TEXT,
+        id INTEGER,
+        UNIQUE (channel, name) ON CONFLICT REPLACE
     );
     PRAGMA case_sensitive_like=ON;
     """
@@ -71,10 +77,13 @@ def show_tables(cur):
 
 def main():
     db, cur = open_db()
+
+    drop_tables(cur)
     create_tables(cur)
-    # show_tables(cur)
     db.commit()
-    # db.rollback()
+
+    show_tables(cur)
+
     db.close()
 
 
