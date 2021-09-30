@@ -7,6 +7,7 @@ from discord.ext.commands import Context, Cog, command, Bot
 
 from src.bot import functions
 from src.bot.functions import Functions, Reaction
+from src.db.db import Db
 
 
 class Commands(Cog):
@@ -44,9 +45,9 @@ class Commands(Cog):
     async def test_command(self, context: Context):
         # await self.send_to_channel("bot-spam", "I BEEN EDITED", message_name="Lauren",
         #                            reactions=[Reaction.ACCEPTED, Reaction.REJECTED])
-        # with Db() as db:
-        #     db.print_tables()
-        self.f.get_commissions_info_from_spreadsheet()
+        with Db() as db:
+            db.print_tables()
+        self.f.update_commissions_information()
 
     @command(name='newlist', help="Create a new list")
     async def new_list(self, context: Context):

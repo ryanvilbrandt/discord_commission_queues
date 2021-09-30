@@ -54,13 +54,24 @@ def create_tables(cur):
 
     sql = """
     CREATE TABLE IF NOT EXISTS commissions (
-        id INTEGER PRIMARY KEY
-    );
-    CREATE TABLE IF NOT EXISTS message_ids (
-        channel TEXT,
-        name TEXT,
-        id INTEGER,
-        UNIQUE (channel, name) ON CONFLICT REPLACE
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TIMESTAMP,
+        email TEXT,
+        twitch_username TEXT,
+        twitter_username TEXT,
+        discord_username TEXT,
+        reference_images TEXT,
+        description TEXT,
+        expression TEXT,
+        notes TEXT,
+        artist_of_choice TEXT,
+        if_queue_is_full TEXT,
+        invoiced BOOLEAN DEFAULT NULL,
+        finished BOOLEAN DEFAULT NULL,
+        assigned_to TEXT DEFAULT NULL,
+        channel_name DEFAULT NULL,
+        message_id DEFAULT NULL,
+        UNIQUE (timestamp, email) ON CONFLICT IGNORE
     );
     PRAGMA case_sensitive_like=ON;
     """

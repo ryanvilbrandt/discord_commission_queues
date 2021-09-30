@@ -36,20 +36,32 @@ class Db:
 
     def print_tables(self):
         import pandas
-        tables = ["commissions", "message_ids"]
+        tables = ["commissions"]
         pandas.set_option("display.width", None)
         for t in tables:
             print(" {} ".format(t).center(50, "="))
             print(pandas.read_sql_query(f"SELECT * FROM {t}", self.conn))
             print('')
 
-    def get_message_id(self, channel_name, message_name):
-        sql = "SELECT id FROM message_ids WHERE channel=? AND name=?;"
-        return self.cur.execute(sql, [channel_name, message_name]).fetchone()[0]
+    def add_commission(self, row):
+        sql = """
+        INSERT INTO commissions(timestamp, email, twitch_username, twitter_username, discord_username, 
+            reference_images, description, expression, notes, artist_of_choice, if_queue_is_full) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        values = row.copy()
+        if len(values) == 10:
+            values.append(None)
+        print(f"Adding to DB: {values}")
+        return self.cur.execute(sql, values)
 
-    def set_message_id(self, channel_name, message_name, message_id):
-        sql = "INSERT INTO message_ids VALUES (?, ?, ?);"
-        self.cur.execute(sql, [channel_name, message_name, message_id])
+    def check_for_commission(self, timestamp, email):
+        sql = """
+            SELECT COUNT(*) FROM commissions WHERE timestamp=? AND email=?;
+        """
+        result = self.cur.execute(sql, [timestamp, email]).fetchone()[0]
+        print(f"({timestamp}, {email}) = {result}")
+        return result
 
 
 if __name__ == "__main__":

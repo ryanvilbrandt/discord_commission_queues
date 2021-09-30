@@ -1,4 +1,6 @@
+import os
 from enum import Enum
+from json import loads
 from typing import Iterable
 
 from discord import Message, Emoji
@@ -80,7 +82,8 @@ class Functions:
             return message
 
     def update_commissions_information(self):
-        pass
+        rows = self.get_commissions_info_from_spreadsheet()
+        self.update_commissions_db(rows)
 
     def get_commissions_info_from_spreadsheet(self):
         print("Loading Google Sheet of commission info...")
@@ -89,11 +92,28 @@ class Functions:
         # Call the Sheets API
         sheet = service.spreadsheets()
         result = sheet.values().get(spreadsheetId=SHEET_ID, range=range).execute()
-        print(result)
-        return result
+        print(result["values"])
+        return result["values"]
 
-    def update_commissions_db(self):
-        pass
+    def update_commissions_db(self, rows):
+        with Db() as db:
+            for row in rows:
+                del row[1]
+                if not db.check_for_commission(row[0], row[1]):
+                    db.add_commission(row)
 
     def update_commissions_messages(self):
         pass
+
+
+if __name__ == "__main__":
+    os.chdir("../..")
+    with open("conf/credentials.json") as f:
+        json = loads(f.read())
+        GOOGLE_SHEETS_DEVELOPER_KEY = json["developer_key"]
+        SHEET_ID = json["spreadsheet_id"]
+
+    # with Db() as db:
+    #     db.print_tables()
+    f = Functions(None)
+    f.update_commissions_information()
