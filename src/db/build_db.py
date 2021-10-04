@@ -1,6 +1,8 @@
 import os
 import sqlite3
 
+from src.utils import CHANNELS
+
 
 def open_db():
     os.makedirs("../../database_files/", exist_ok=True)
@@ -31,9 +33,14 @@ def drop_tables(cur):
     sql = """
         DROP TABLE IF EXISTS version;
         DROP TABLE IF EXISTS commissions;
-        DROP TABLE IF EXISTS message_ids;
+        DROP TABLE IF EXISTS channels;
     """
     cur.executescript(sql)
+
+    sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+    tables = cur.execute(sql).fetchall()
+    if tables:
+        raise Exception(f"Some tables were not deleted: {tables}")
 
 
 def create_tables(cur):
@@ -57,31 +64,43 @@ def create_tables(cur):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TIMESTAMP,
         email TEXT,
-        twitch_username TEXT,
-        twitter_username TEXT,
-        discord_username TEXT,
+        twitch TEXT,
+        twitter TEXT,
+        discord TEXT,
         reference_images TEXT,
         description TEXT,
         expression TEXT,
         notes TEXT,
-        artist_of_choice TEXT,
+        artist_choice TEXT,
         if_queue_is_full TEXT,
-        invoiced BOOLEAN DEFAULT NULL,
-        finished BOOLEAN DEFAULT NULL,
         assigned_to TEXT DEFAULT NULL,
-        channel_name DEFAULT NULL,
-        message_id DEFAULT NULL,
+        hidden BOOLEAN DEFAULT FALSE,
+        invoiced BOOLEAN DEFAULT FALSE,
+        paid BOOLEAN DEFAULT FALSE,
+        finished BOOLEAN DEFAULT FALSE,
+        voided BOOLEAN DEFAULT FALSE,
+        channel_name TEXT DEFAULT NULL,
+        message_id INTEGER DEFAULT NULL,
+        counter INTEGER DEFAULT NULL,
         UNIQUE (timestamp, email) ON CONFLICT IGNORE
+    );
+    CREATE TABLE IF NOT EXISTS channels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        channel_name TEXT UNIQUE,
+        counter INTEGER DEFAULT -1
     );
     PRAGMA case_sensitive_like=ON;
     """
     cur.executescript(sql)
 
+    sql = "INSERT INTO channels(channel_name) VALUES (?);"
+    cur.executemany(sql, [[c] for c in CHANNELS.keys()])
+
     set_version(cur, 1)
 
 
 def show_tables(cur):
-    sql = "SELECT sql FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%';"
+    sql = "SELECT sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
     for row in cur.execute(sql).fetchall():
         print(row[0])
 

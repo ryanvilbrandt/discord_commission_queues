@@ -1,3 +1,2 @@
-discord.py
-pandas
+git+https://github.com/Rapptz/discord.py
 google-api-python-client
