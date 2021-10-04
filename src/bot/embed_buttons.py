@@ -89,7 +89,7 @@ class EmbedButtonsView(discord.ui.View):
                         self.add_button(ButtonAction.Accept)
                     self.add_button(ButtonAction.Reject)
             self.add_button(ButtonAction.Hide)
-            if not claimable:
+            if not claimable and accepted:
                 if not invoiced:
                     self.add_button(ButtonAction.Invoiced)
                 elif not paid:
