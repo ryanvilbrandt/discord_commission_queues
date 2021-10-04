@@ -54,9 +54,3 @@ def run_bot():
     bot = init_bot()
     load_commands(bot)
     bot.run(TOKEN)
-
-
-
-# TODO:
-# Add Accept button, and block Invoice/Pay/Done buttons behind it
-# Limit who can claim a commission IF the commissioner requested only one artist work on it

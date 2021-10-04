@@ -1,4 +1,5 @@
 from discord.ext.commands import Context, Cog, command, Bot
+from discord.ext.tasks import loop
 
 from src.bot.functions import Functions
 
@@ -11,6 +12,15 @@ class Commands(Cog):
 
     async def init(self):
         await self.f.init()
+        self.update_loop.start()
+
+    @loop(seconds=10)
+    async def update_loop(self):
+        await self.f.update_commissions_information()
+
+    @update_loop.before_loop
+    async def update_loop_before(self):
+        await self.bot.wait_until_ready()
 
     @command(name="test")
     async def test_command(self, context: Context):
