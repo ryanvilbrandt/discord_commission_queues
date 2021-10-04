@@ -42,7 +42,8 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
             await functions.claim_commission(interaction.user, message_id)
         else:
             if self.action == ButtonAction.Accept:
-                commission = await functions.accept_commission(interaction.user, message_id)
+                coroutine = functions.accept_commission(interaction.user, message_id)
+                commission = await coroutine if coroutine else None
             elif self.action == ButtonAction.Show:
                 commission = await functions.show_commission(message_id)
             elif self.action == ButtonAction.Hide:
