@@ -55,15 +55,22 @@ def build_embed(timestamp: str, email: str, counter: int, description: str, expr
     if hidden:
         embed.description = "Hidden, to show click the Show button below"
     else:
-        embed.add_field(name="Character description", value=description, inline=False)
-        embed.add_field(name="Specific expression", value=expression, inline=False)
-        embed.add_field(name="Additional notes", value=notes, inline=False)
-        embed.add_field(name="Reference images", value=reference_images, inline=False)
-        embed.add_field(name="Twitch username", value=twitch, inline=True)
-        embed.add_field(name="Twitter username", value=twitter, inline=True)
-        embed.add_field(name="Discord handle", value=discord, inline=True)
-        embed.add_field(name="Artists requested", value=artist_choice, inline=False)
-    embed.set_thumbnail(url=get_url(reference_images))
+        if description:
+            embed.add_field(name="Character description", value=description, inline=False)
+        if expression:
+            embed.add_field(name="Specific expression", value=expression, inline=False)
+        if notes:
+            embed.add_field(name="Additional notes", value=notes, inline=False)
+        if reference_images:
+            embed.add_field(name="Reference images", value=reference_images, inline=False)
+        if twitch:
+            embed.add_field(name="Twitch username", value=twitch, inline=True)
+        if twitter:
+            embed.add_field(name="Twitter username", value=twitter, inline=True)
+        if discord:
+            embed.add_field(name="Discord handle", value=discord, inline=True)
+        embed.add_field(name="Artist requested", value=artist_choice, inline=False)
+        embed.set_thumbnail(url=get_url(reference_images))
 
     return embed
 
