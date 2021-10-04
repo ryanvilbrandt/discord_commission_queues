@@ -124,11 +124,16 @@ class Functions:
             commission = db.get_commission_by_message_id(message_id)
             if commission["assigned_to"] is not None:
                 print(f"A user ({member}) tried to claim a commission that was already claimed. How??")
+                await member.send(
+                    f"You tried to claim a commission that was already claimed. Please tell Trick-Candle how.",
+                    delete_after=60
+                )
                 return False
             else:
                 name = get_name_by_member_id(member.id)
                 if name is None:
                     print(f"An invalid user ({member}) tried to claim a commission.")
+                    await member.send("You cannot claim commissions.", delete_after=60)
                     return False
                 else:
                     old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
@@ -139,18 +144,19 @@ class Functions:
                     return True
 
     @staticmethod
-    def check_if_user_can_accept_reject(db: Db, member: Member, message_id: int, action: str):
+    async def check_if_user_can_accept_reject(db: Db, member: Member, message_id: int, action: str):
         commission = db.get_commission_by_message_id(message_id)
         name = get_name_by_member_id(member.id)
         if name != commission["assigned_to"]:
             print(f"A user ({member} | {name}) tried to {action} a commission "
                   f"when it wasn't assigned to them ({commission['assigned_to']}).")
+            await member.send(f"You can't {action} a commission that isn't assigned to you.", delete_after=60)
             return None
         return commission
 
     async def reject_commission(self, member: Member, message_id: int) -> bool:
         with Db() as db:
-            commission = self.check_if_user_can_accept_reject(db, member, message_id, "reject")
+            commission = await self.check_if_user_can_accept_reject(db, member, message_id, "reject")
             if not commission:
                 return False
             old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
@@ -160,9 +166,9 @@ class Functions:
             await self.delete_message(old_channel_name, old_message_id)
             return True
 
-    def accept_commission(self, member: Member, message_id: int) -> Optional[dict]:
+    async def accept_commission(self, member: Member, message_id: int) -> Optional[dict]:
         with Db() as db:
-            commission = self.check_if_user_can_accept_reject(db, member, message_id, "accept")
+            commission = await self.check_if_user_can_accept_reject(db, member, message_id, "accept")
             if not commission:
                 return None
             return db.accept_commission(message_id, accepted=True)
