@@ -21,7 +21,7 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
 
     def __init__(self, action: ButtonAction):
         super().__init__(
-            style=discord.ButtonStyle.primary,
+            style=discord.ButtonStyle.blurple,
             label=action.name,
             emoji=action.value,
             custom_id=f"{action.name}_button"
@@ -29,7 +29,6 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         self.action = action
 
     async def callback(self, interaction: discord.Interaction):
-        print(dir(interaction.response))
         view: EmbedButtonsView = self.view
         if view.processing_callback:
             print(f"{self.action} was clicked while its view was processing another click. Ignoring this click.")
@@ -42,7 +41,9 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         elif self.action == ButtonAction.Claim:
             await functions.claim_commission(interaction.user, message_id)
         else:
-            if self.action == ButtonAction.Show:
+            if self.action == ButtonAction.Accept:
+                commission = await functions.accept_commission(interaction.user, message_id)
+            elif self.action == ButtonAction.Show:
                 commission = await functions.show_commission(message_id)
             elif self.action == ButtonAction.Hide:
                 commission = await functions.hide_commission(message_id)
@@ -54,8 +55,8 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
                 commission = await functions.finish_commission(message_id)
             else:
                 raise ValueError(self.action)
-            print(commission)
-            await self.edit_message(interaction, commission)
+            if commission:
+                await self.edit_message(interaction, commission)
         view.processing_callback = False
 
     async def edit_message(self, interaction: discord.Interaction, commission: dict):
@@ -72,8 +73,8 @@ class EmbedButtonsView(discord.ui.View):
     buttons: Dict[ButtonAction, EmbedButton] = {}
     processing_callback = False
 
-    def __init__(self, functions_obj: "Functions", claimable: bool, hidden: bool, invoiced: bool, paid: bool,
-                 finished: bool, **kwargs):
+    def __init__(self, functions_obj: "Functions", claimable: bool, accepted: bool, hidden: bool, invoiced: bool,
+                 paid: bool, finished: bool, **kwargs):
         super().__init__()
         self.functions_obj = functions_obj
         self.claimable = claimable
@@ -81,14 +82,20 @@ class EmbedButtonsView(discord.ui.View):
             self.add_button(ButtonAction.Show)
         else:
             if not (invoiced or paid or finished):
-                self.add_button(ButtonAction.Claim if claimable else ButtonAction.Reject)
+                if claimable:
+                    self.add_button(ButtonAction.Claim)
+                else:
+                    if not accepted:
+                        self.add_button(ButtonAction.Accept)
+                    self.add_button(ButtonAction.Reject)
             self.add_button(ButtonAction.Hide)
-            if not invoiced:
-                self.add_button(ButtonAction.Invoiced)
-            elif not paid:
-                self.add_button(ButtonAction.Paid)
-            if not finished:
-                self.add_button(ButtonAction.Done)
+            if not claimable:
+                if not invoiced:
+                    self.add_button(ButtonAction.Invoiced)
+                elif not paid:
+                    self.add_button(ButtonAction.Paid)
+                if not finished:
+                    self.add_button(ButtonAction.Done)
 
     def add_button(self, button_action: ButtonAction):
         button_object = EmbedButton(button_action)

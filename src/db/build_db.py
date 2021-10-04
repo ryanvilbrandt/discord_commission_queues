@@ -75,6 +75,7 @@ def create_tables(cur):
         if_queue_is_full TEXT,
         assigned_to TEXT DEFAULT NULL,
         hidden BOOLEAN DEFAULT FALSE,
+        accepted BOOLEAN DEFAULT FALSE,
         invoiced BOOLEAN DEFAULT FALSE,
         paid BOOLEAN DEFAULT FALSE,
         finished BOOLEAN DEFAULT FALSE,

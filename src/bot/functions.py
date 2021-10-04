@@ -1,5 +1,4 @@
-import os
-from json import loads
+import asyncio
 from typing import Dict, Optional
 
 from discord import Message, Emoji, Embed, Member
@@ -132,26 +131,41 @@ class Functions:
                     print(f"An invalid user ({member}) tried to claim a commission.")
                     return False
                 else:
-                    commission = db.assign_commission(name, message_id=message_id)
                     old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
+                    db.assign_commission(name, message_id=message_id)
+                    commission = db.accept_commission(message_id, accepted=True)
                     await self.send_commission_embed(db, commission)
                     await self.delete_message(old_channel_name, old_message_id)
                     return True
 
+    @staticmethod
+    def check_if_user_can_accept_reject(db: Db, member: Member, message_id: int, action: str):
+        commission = db.get_commission_by_message_id(message_id)
+        name = get_name_by_member_id(member.id)
+        if name != commission["assigned_to"]:
+            print(f"A user ({member} | {name}) tried to {action} a commission "
+                  f"when it wasn't assigned to them ({commission['assigned_to']}).")
+            return None
+        return commission
+
     async def reject_commission(self, member: Member, message_id: int) -> bool:
         with Db() as db:
-            commission = db.get_commission_by_message_id(message_id)
-            name = get_name_by_member_id(member.id)
-            if name != commission["assigned_to"]:
-                print(f"A user ({member} | {name}) tried to reject a commission "
-                      f"when it wasn't assigned to them ({commission['assigned_to']}).")
+            commission = self.check_if_user_can_accept_reject(db, member, message_id, "reject")
+            if not commission:
                 return False
-            else:
-                commission = db.assign_commission(None, message_id=message_id)
-                old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
-                await self.send_commission_embed(db, commission)
-                await self.delete_message(old_channel_name, old_message_id)
-                return True
+            old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
+            db.assign_commission(None, message_id=message_id)
+            commission = db.accept_commission(message_id, accepted=False)
+            await self.send_commission_embed(db, commission)
+            await self.delete_message(old_channel_name, old_message_id)
+            return True
+
+    def accept_commission(self, member: Member, message_id: int) -> Optional[dict]:
+        with Db() as db:
+            commission = self.check_if_user_can_accept_reject(db, member, message_id, "accept")
+            if not commission:
+                return None
+            return db.accept_commission(message_id, accepted=True)
 
     @staticmethod
     async def show_commission(message_id: int) -> dict:

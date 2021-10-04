@@ -116,6 +116,12 @@ class Db:
             raise ValueError("Either message_id or (timestamp and email) must be set.")
         return self.fetch_dict(sql, params)
 
+    def accept_commission(self, message_id: int, accepted=True):
+        sql = """
+            UPDATE commissions SET accepted=? WHERE message_id=? RETURNING *; 
+        """
+        return self.fetch_dict(sql, [accepted, message_id])
+
     def hide_commission(self, message_id: int, hidden):
         sql = """
             UPDATE commissions SET hidden=? WHERE message_id=? RETURNING *; 
