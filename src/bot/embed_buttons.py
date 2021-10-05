@@ -33,7 +33,7 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         if view.processing_callback:
             print(f"{self.action} was clicked while its view was processing another click. Ignoring this click.")
             await interaction.user.send("Whoops! Someone else clicked a button on that commission right before "
-                                        "you did. Please try again in a few moments.")
+                                        "you did. Please try again in a few moments.", delete_after=60)
             return
         view.processing_callback = True
         functions = view.functions_obj

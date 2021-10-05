@@ -14,7 +14,7 @@ class Commands(Cog):
         await self.f.init()
         self.update_loop.start()
 
-    @loop(seconds=10)
+    @loop(seconds=60)
     async def update_loop(self):
         await self.f.update_commissions_information()
 
@@ -22,14 +22,18 @@ class Commands(Cog):
     async def update_loop_before(self):
         await self.bot.wait_until_ready()
 
-    @command(name="test")
+    @command(name="update")
     async def test_command(self, context: Context):
-        # await self.send_to_channel("bot-spam", "I BEEN EDITED", message_name="Lauren",
-        #                            reactions=[Reaction.ACCEPTED, Reaction.REJECTED])
         await self.f.update_commissions_information()
-        # embed, view = build_embed("10/03/2021 15:36:00", "abc@gmail.com", 2, "abcd", "", "", "", "", "", "", "",
-        #                           False, False, False, False)
-        # await self.f.send_to_channel("bot-spam", embed, view)
+
+    # @command(name="test")
+    # async def test_command(self, context: Context):
+    #     await self.send_to_channel("bot-spam", "I BEEN EDITED", message_name="Lauren",
+    #                                reactions=[Reaction.ACCEPTED, Reaction.REJECTED])
+    #     await self.f.update_commissions_information()
+    #     embed, view = build_embed("10/03/2021 15:36:00", "abc@gmail.com", 2, "abcd", "", "", "", "", "", "", "",
+    #                               False, False, False, False)
+    #     await self.f.send_to_channel("bot-spam", embed, view)
 
     @command(name="cleanup")
     async def cleanup(self, context: Context):
