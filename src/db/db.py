@@ -156,7 +156,7 @@ class Db:
         """
         return self.fetch_dict(sql, [finished, message_id])
 
-
-if __name__ == "__main__":
-    with Db(filename="../../database_files/main.db") as db:
-        db.cur.execute("DELETE FROM commissions;")
+#
+# if __name__ == "__main__":
+#     with Db(filename="../../database_files/main.db") as db:
+#         db.cur.execute("DELETE FROM commissions;")

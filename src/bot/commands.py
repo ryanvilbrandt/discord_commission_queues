@@ -1,3 +1,5 @@
+import logging
+import sys
 from typing import Optional
 
 from discord.ext.commands import Context, Cog, command, Bot
@@ -19,19 +21,23 @@ class Commands(Cog):
 
     @loop(seconds=300)
     async def update_loop(self):
-        await self.f.update_commissions_information()
+        await self.f.update_commissions_information(False)
 
     @update_loop.before_loop
     async def update_loop_before(self):
         await self.bot.wait_until_ready()
 
     @command(name="update")
-    async def update(self, context: Context, randomize=True):
+    async def update(self, context: Context, randomize=False):
         await self.f.update_commissions_information(randomize)
 
     @command(name="cleanup")
     async def cleanup(self, context: Context, queue: Optional[str]=None):
         await self.f.cleanup_channels(queue)
+
+    @command(name="refresh")
+    async def refresh(self, context: Context, queue: Optional[str]=None):
+        await self.f.cleanup_and_resend_messages(False, queue)
 
     @command(name="shuffle")
     async def shuffle(self, context: Context, queue: Optional[str]=None):

@@ -1,4 +1,5 @@
 from random import shuffle
+from time import sleep
 from typing import Dict, Optional
 
 from discord import Message, Emoji, Embed, Member
@@ -47,15 +48,21 @@ class Functions:
         return self.emoji_cache[emoji_name]
 
     async def cleanup_and_resend_messages(self, randomize=True, queue=None):
-        await self.cleanup_channels(queue)
-        print("Resending commissions...")
-        with Db() as db:
-            commissions = list(db.get_all_commissions_for_queue(queue) if queue else db.get_all_commissions())
-            if randomize:
-                shuffle(commissions)
-            for commission in commissions:
-                print(f"Sending {commission}")
-                await self.send_commission_embed(db, commission, set_counter=False)
+        channels_list = [queue] if queue else list(self.channels.keys())
+        for channel_name in channels_list:
+            await self.cleanup_channels(channel_name)
+            print(f"Resending commissions for {channel_name}...")
+            with Db() as db:
+                commissions = list(db.get_all_commissions_for_queue(channel_name) if channel_name
+                                   else db.get_all_commissions())
+                if randomize:
+                    shuffle(commissions)
+                for commission in commissions:
+                    print(f"Sending {commission}")
+                    if commission["finished"]:
+                        continue
+                    await self.send_commission_embed(db, commission, set_counter=False)
+                    # sleep(0.750)
 
     async def cleanup_channels(self, queue: str=None):
         for channel_name, channel_id in self.channels.items():

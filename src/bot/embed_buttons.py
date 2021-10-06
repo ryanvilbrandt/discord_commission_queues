@@ -29,6 +29,7 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         self.action = action
 
     async def callback(self, interaction: discord.Interaction):
+        print("Button clicked: {} {!r}".format(self.action, interaction.message.content))
         view: EmbedButtonsView = self.view
         if view.processing_callback:
             print(f"{self.action} was clicked while its view was processing another click. Ignoring this click.")
@@ -78,7 +79,7 @@ class EmbedButtonsView(discord.ui.View):
 
     def __init__(self, functions_obj: "Functions", claimable: bool, accepted: bool, hidden: bool, invoiced: bool,
                  paid: bool, finished: bool, **kwargs):
-        super().__init__()
+        super().__init__(timeout=None)
         self.functions_obj = functions_obj
         self.claimable = claimable
         if hidden:

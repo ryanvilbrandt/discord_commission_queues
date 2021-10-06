@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Union, NamedTuple, Tuple
+from typing import NamedTuple, Tuple
 
 from discord import Embed
 
@@ -58,10 +58,10 @@ class BotError(Exception):
     pass
 
 
-def build_embed(timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
+def build_embed(id: int, timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
                 reference_images: str, artist_choice: str, twitch: str, twitter: str, discord: str, hidden: bool,
                 allow_any_artist: bool, invoiced: bool, paid: bool, finished: bool, **kwargs) -> Tuple[str, Embed]:
-    print("Unused kwargs: {}".format(kwargs))
+    # print("Unused kwargs: {}".format(kwargs))
 
     if finished:
         status = Status.Finished
@@ -80,7 +80,7 @@ def build_embed(timestamp: str, name: str, email: str, description: str, express
         status_name = status_name.format(artist_choice)
     emoji = status.value.emoji
 
-    content = "{} Commission for {}".format(emoji, name)
+    content = "{} Commission for {} (#{} {})".format(emoji, name, id, email)
 
     embed = Embed(
         type="rich",
@@ -88,23 +88,24 @@ def build_embed(timestamp: str, name: str, email: str, description: str, express
         color=color,
         timestamp=ts_to_dt(timestamp)
     )
+    trunc = False  # A message was truncated
     if not hidden:
-        embed.add_field(name="Status", value=status_name, inline=False)
+        trunc = add_field(embed, "Status", status_name, False) or trunc
         if description:
-            embed.add_field(name="Character description", value=description, inline=False)
+            trunc = add_field(embed, "Character description", description, False) or trunc
         if expression:
-            embed.add_field(name="Specific expression", value=expression, inline=False)
+            trunc = add_field(embed, "Specific expression", expression, False) or trunc
         if notes:
-            embed.add_field(name="Additional notes", value=notes, inline=False)
+            trunc = add_field(embed, "Additional notes", notes, False) or trunc
         if reference_images:
-            embed.add_field(name="Reference images", value=reference_images, inline=False)
+            trunc = add_field(embed, "Reference images", reference_images, False) or trunc
         if twitch:
-            embed.add_field(name="Twitch username", value=twitch, inline=True)
+            trunc = add_field(embed, "Twitch username", twitch, True) or trunc
         if twitter:
-            embed.add_field(name="Twitter username", value=twitter, inline=True)
+            trunc = add_field(embed, "Twitter username", twitter, True) or trunc
         if discord:
-            embed.add_field(name="Discord handle", value=discord, inline=True)
-        embed.add_field(name="Artist requested", value=artist_choice, inline=False)
+            trunc = add_field(embed, "Discord handle", discord, True) or trunc
+        trunc = add_field(embed, "Artist requested", artist_choice, False) or trunc
         url = get_url(reference_images)
         if url:
             embed.set_thumbnail(url=url)
@@ -114,13 +115,18 @@ def build_embed(timestamp: str, name: str, email: str, description: str, express
     return content, embed
 
 
-def add_field(fields: List[Dict[str, Union[str, bool]]], name: str, value: str, inline=False, force_add=False):
+def add_field(embed: Embed, name: str, value: str, inline=False, force_add=False) -> bool:
+    message_truncated = False
+    if len(value) > 1024:
+        value = value[:1021] + "..."
+        message_truncated = True
     if value or force_add:
-        fields.append({
-            "name": name,
-            "value": value,
-            "inline": inline
-        })
+        embed.add_field(
+            name=name,
+            value=value,
+            inline=inline
+        )
+    return message_truncated
 
 
 def get_color(counter: int) -> int:
