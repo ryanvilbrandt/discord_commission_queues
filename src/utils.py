@@ -5,13 +5,14 @@ from typing import List, Dict, Union
 from discord import Embed
 
 CHANNELS = {
-    "incoming-commissions": "Any artist (no £5 fee)",
+    "incoming-commissions": "!Any artist",
     "caytlins-queue": "Caytlin Vilbrandt",
     "izzys-queue": "IzzySqueakzy",
     "laurens-queue": "Lauren Pierre",
     "scotts-queue": "Scott Fraser",
     "knacks-queue": "Knack Whittle",
     "jonas-queue": "Jonas",
+    "voided-queue": "!Void",
     "bot-spam": "Trick-Candle",
 }
 

@@ -122,7 +122,10 @@ class Functions:
         return result
 
     async def send_commission_embed(self, db: Db, commission: Dict, set_counter=True):
-        channel_name = get_channel_name(commission["assigned_to"])
+        if commission["assigned_to"] is None:
+            channel_name = get_channel_name("!Any artist" if commission["allow_any_artist"] else "!Void")
+        else:
+            channel_name = get_channel_name(commission["assigned_to"])
         timestamp, email = commission["timestamp"], commission["email"]
         if set_counter:
             # Increment channel counter, to track how many messages were sent on this channel
@@ -140,6 +143,7 @@ class Functions:
     async def claim_commission(self, member: Member, message_id: int) -> bool:
         with Db() as db:
             commission = db.get_commission_by_message_id(message_id)
+            # The commission must not currently be assigned to anyone to allow a claim
             if commission["assigned_to"] is not None:
                 print(f"A user ({member}) tried to claim a commission that was already claimed. How??")
                 await member.send(
@@ -147,36 +151,36 @@ class Functions:
                     delete_after=60
                 )
                 return False
-            else:
-                name = get_name_by_member_id(member.id)
-                if name is None:
-                    print(f"An invalid user ({member}) tried to claim a commission.")
-                    await member.send("You cannot claim commissions.", delete_after=60)
-                    return False
-                else:
-                    old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
-                    db.assign_commission(name, message_id=message_id)
-                    commission = db.accept_commission(message_id, accepted=True)
-                    await self.send_commission_embed(db, commission)
-                    await self.delete_message(old_channel_name, old_message_id)
-                    return True
+            # The claiming user must have a channel assigned to them
+            name = get_name_by_member_id(member.id)
+            if name is None:
+                print(f"An invalid user ({member}) tried to claim a commission.")
+                await member.send("You cannot claim commissions.", delete_after=60)
+                return False
+            # If the commission is limited to a specific artist, the claiming artist must be that artist
+            if not commission["allow_any_artist"] and commission["artist_choice"] != name:
+                return False
+            old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
+            db.assign_commission(name, message_id=message_id)
+            commission = db.accept_commission(message_id, accepted=True)
+            await self.send_commission_embed(db, commission)
+            await self.delete_message(old_channel_name, old_message_id)
+            return True
 
-    @staticmethod
-    async def check_if_user_can_accept_reject(db: Db, member: Member, message_id: int, action: str):
-        commission = db.get_commission_by_message_id(message_id)
-        name = get_name_by_member_id(member.id)
-        if name != commission["assigned_to"]:
-            print(f"A user ({member} | {name}) tried to {action} a commission "
-                  f"when it wasn't assigned to them ({commission['assigned_to']}).")
-            await member.send(f"You can't {action} a commission that isn't assigned to you.", delete_after=60)
-            return None
-        return commission
+    # @staticmethod
+    # async def check_if_user_can_accept_reject(db: Db, member: Member, message_id: int, action: str):
+    #     commission = db.get_commission_by_message_id(message_id)
+    #     name = get_name_by_member_id(member.id)
+    #     if name != commission["assigned_to"]:
+    #         print(f"A user ({member} | {name}) tried to {action} a commission "
+    #               f"when it wasn't assigned to them ({commission['assigned_to']}).")
+    #         await member.send(f"You can't {action} a commission that isn't assigned to you.", delete_after=60)
+    #         return None
+    #     return commission
 
     async def reject_commission(self, member: Member, message_id: int) -> bool:
         with Db() as db:
-            commission = await self.check_if_user_can_accept_reject(db, member, message_id, "reject")
-            if not commission:
-                return False
+            commission = db.get_commission_by_message_id(message_id)
             old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
             db.assign_commission(None, message_id=message_id)
             commission = db.accept_commission(message_id, accepted=False)
@@ -184,11 +188,9 @@ class Functions:
             await self.delete_message(old_channel_name, old_message_id)
             return True
 
-    async def accept_commission(self, member: Member, message_id: int) -> Optional[dict]:
+    @staticmethod
+    async def accept_commission(member: Member, message_id: int) -> Optional[dict]:
         with Db() as db:
-            commission = await self.check_if_user_can_accept_reject(db, member, message_id, "accept")
-            if not commission:
-                return None
             return db.accept_commission(message_id, accepted=True)
 
     @staticmethod
