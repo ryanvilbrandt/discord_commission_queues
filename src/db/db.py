@@ -55,6 +55,13 @@ class Db:
         for row in self.cur.execute(sql).fetchall():
             yield self.row_to_dict(row)
 
+    def get_all_commissions_for_queue(self, channel_name: str) -> List[dict]:
+        sql = """
+            SELECT * FROM commissions WHERE channel_name=?;
+        """
+        for row in self.cur.execute(sql, [channel_name]).fetchall():
+            yield self.row_to_dict(row)
+
     def add_commission(self, row) -> dict:
         sql = """
         INSERT INTO commissions(timestamp, email, twitch, twitter, discord, 

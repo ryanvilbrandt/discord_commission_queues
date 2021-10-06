@@ -1,4 +1,4 @@
-import asyncio
+from random import shuffle
 from typing import Dict, Optional
 
 from discord import Message, Emoji, Embed, Member
@@ -46,19 +46,22 @@ class Functions:
                 raise ValueError("No emoji found for {}".format(emoji_name))
         return self.emoji_cache[emoji_name]
 
-    async def cleanup_and_resend_messages(self):
-        await self.cleanup_channels()
+    async def cleanup_and_resend_messages(self, randomize=True, queue=None):
+        await self.cleanup_channels(queue)
         print("Resending commissions...")
         with Db() as db:
-            for commission in db.get_all_commissions():
+            commissions = list(db.get_all_commissions_for_queue(queue) if queue else db.get_all_commissions())
+            if randomize:
+                shuffle(commissions)
+            for commission in commissions:
                 print(f"Sending {commission}")
                 await self.send_commission_embed(db, commission, set_counter=False)
 
-    async def cleanup_channels(self):
+    async def cleanup_channels(self, queue: bool=None):
         for channel_name, channel_id in self.channels.items():
-            if channel_name == "bot-spam":
+            if queue is not None and channel_name != queue:
                 continue
-            print(f"Checking {channel_name}...")
+            print(f"Cleaning {channel_name}...")
             channel = self.bot.get_channel(channel_id)
             async for message in channel.history():
                 if message.author.name == "CommissionQueueBot":
@@ -73,23 +76,38 @@ class Functions:
         message = await channel.fetch_message(message_id)
         await message.delete()
 
-    async def update_commissions_information(self):
+    async def update_commissions_information(self, randomize=True):
         rows = self.get_commissions_info_from_spreadsheet()
+        if randomize:
+            shuffle(rows)
+        commissions_to_send = []
         with Db() as db:
             for row in rows:
-                timestamp, email = row[0], row[2]
-                commission = db.get_commission_by_email(timestamp, email)
+                commission = db.get_commission_by_email(row[0], row[2])
                 if commission is None:
-                    del row[1]  # Delete TOS agreement
-                    commission = db.add_commission(row)
-                    # Assign the commission to someone based on artist_choice
-                    if commission["artist_choice"].startswith("Any artist"):
-                        assigned_to = None
-                    else:
-                        assigned_to = commission["artist_choice"]
-                    commission = db.assign_commission(assigned_to, timestamp, email)
+                    # Add commissions to a list, so we can possibly randomize them before sending
+                    commissions_to_send.append(self.prep_commission(db, row))
+            if commissions_to_send:
+                if randomize:
+                    shuffle(rows)
+                for commission in commissions_to_send:
                     await self.send_commission_embed(db, commission)
         print("Done processing new commissions")
+
+    @staticmethod
+    def prep_commission(db: Db, row: list) -> dict:
+        del row[1]  # Delete TOS agreement
+        timestamp, email = row[0], row[1]
+        commission = db.add_commission(row)
+        # Assign the commission to someone based on artist_choice
+        if commission["artist_choice"].startswith("Any artist"):
+            assigned_to = None
+        else:
+            assigned_to = commission["artist_choice"]
+        commission = db.assign_commission(assigned_to, timestamp, email)
+        # Set allow_any_artist flag
+        allow_any_artist = "void" not in (commission.get("if_queue_is_full") or "").lower()
+        return db.set_allow_any_artist(allow_any_artist, timestamp, email)
 
     @staticmethod
     def get_commissions_info_from_spreadsheet():

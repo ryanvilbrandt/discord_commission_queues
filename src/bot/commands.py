@@ -1,3 +1,5 @@
+from typing import Optional
+
 from discord.ext.commands import Context, Cog, command, Bot
 from discord.ext.tasks import loop
 
@@ -23,18 +25,13 @@ class Commands(Cog):
         await self.bot.wait_until_ready()
 
     @command(name="update")
-    async def test_command(self, context: Context):
-        await self.f.update_commissions_information()
-
-    # @command(name="test")
-    # async def test_command(self, context: Context):
-    #     await self.send_to_channel("bot-spam", "I BEEN EDITED", message_name="Lauren",
-    #                                reactions=[Reaction.ACCEPTED, Reaction.REJECTED])
-    #     await self.f.update_commissions_information()
-    #     embed, view = build_embed("10/03/2021 15:36:00", "abc@gmail.com", 2, "abcd", "", "", "", "", "", "", "",
-    #                               False, False, False, False)
-    #     await self.f.send_to_channel("bot-spam", embed, view)
+    async def update(self, context: Context, randomize=True):
+        await self.f.update_commissions_information(randomize)
 
     @command(name="cleanup")
-    async def cleanup(self, context: Context):
-        await self.f.cleanup_channels()
+    async def cleanup(self, context: Context, queue: Optional[str]=None):
+        await self.f.cleanup_channels(queue)
+
+    @command(name="shuffle")
+    async def cleanup(self, context: Context, queue: Optional[str]=None):
+        await self.f.cleanup_and_resend_messages(True, queue)
