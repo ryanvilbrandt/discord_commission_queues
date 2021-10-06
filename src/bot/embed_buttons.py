@@ -29,7 +29,7 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         self.action = action
 
     async def callback(self, interaction: discord.Interaction):
-        print("Button clicked: {} {!r}".format(self.action, interaction.message.content))
+        print("Button clicked: {} {!r} {}".format(self.action, interaction.message.content, interaction.user.name))
         view: EmbedButtonsView = self.view
         if view.processing_callback:
             print(f"{self.action} was clicked while its view was processing another click. Ignoring this click.")
@@ -37,31 +37,33 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
                                         "you did. Please try again in a few moments.", delete_after=60)
             return
         view.processing_callback = True
-        functions = view.functions_obj
-        message_id = interaction.message.id
-        if self.action == ButtonAction.Reject:
-            await functions.reject_commission(interaction.user, message_id)
-        elif self.action == ButtonAction.Claim:
-            await functions.claim_commission(interaction.user, message_id)
-        else:
-            if self.action == ButtonAction.Accept:
-                coroutine = functions.accept_commission(interaction.user, message_id)
-                commission = await coroutine if coroutine else None
-            elif self.action == ButtonAction.Show:
-                commission = await functions.show_commission(message_id)
-            elif self.action == ButtonAction.Hide:
-                commission = await functions.hide_commission(message_id)
-            elif self.action == ButtonAction.Invoiced:
-                commission = await functions.invoice_commission(message_id)
-            elif self.action == ButtonAction.Paid:
-                commission = await functions.pay_commission(message_id)
-            elif self.action == ButtonAction.Done:
-                commission = await functions.finish_commission(message_id)
+        try:
+            functions = view.functions_obj
+            message_id = interaction.message.id
+            if self.action == ButtonAction.Reject:
+                await functions.reject_commission(interaction.user, message_id)
+            elif self.action == ButtonAction.Claim:
+                await functions.claim_commission(interaction.user, message_id)
             else:
-                raise ValueError(self.action)
-            if commission:
-                await self.edit_message(interaction, commission)
-        view.processing_callback = False
+                if self.action == ButtonAction.Accept:
+                    coroutine = functions.accept_commission(interaction.user, message_id)
+                    commission = await coroutine if coroutine else None
+                elif self.action == ButtonAction.Show:
+                    commission = await functions.show_commission(message_id)
+                elif self.action == ButtonAction.Hide:
+                    commission = await functions.hide_commission(message_id)
+                elif self.action == ButtonAction.Invoiced:
+                    commission = await functions.invoice_commission(message_id)
+                elif self.action == ButtonAction.Paid:
+                    commission = await functions.pay_commission(message_id)
+                elif self.action == ButtonAction.Done:
+                    commission = await functions.finish_commission(message_id)
+                else:
+                    raise ValueError(self.action)
+                if commission:
+                    await self.edit_message(interaction, commission)
+        finally:
+            view.processing_callback = False
 
     async def edit_message(self, interaction: discord.Interaction, commission: dict):
         content, embed = build_embed(**commission)
