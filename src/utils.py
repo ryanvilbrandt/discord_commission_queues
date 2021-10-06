@@ -71,7 +71,9 @@ def build_embed(timestamp: str, email: str, counter: int, description: str, expr
         if discord:
             embed.add_field(name="Discord handle", value=discord, inline=True)
         embed.add_field(name="Artist requested", value=artist_choice, inline=False)
-        embed.set_thumbnail(url=get_url(reference_images))
+        url = get_url(reference_images)
+        if url:
+            embed.set_thumbnail(url=url)
 
     return embed
 
