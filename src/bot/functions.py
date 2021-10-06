@@ -112,7 +112,7 @@ class Functions:
     @staticmethod
     def get_commissions_info_from_spreadsheet():
         print("Loading Google Sheet of commission info...")
-        sheet_range = "Form Responses 1!A2:L"
+        sheet_range = "Form Responses 1!A2:M"
         service = build('sheets', 'v4', developerKey=GOOGLE_SHEETS_DEVELOPER_KEY)
         # Call the Sheets API
         sheet = service.spreadsheets()

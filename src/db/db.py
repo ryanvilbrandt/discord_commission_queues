@@ -65,13 +65,11 @@ class Db:
     def add_commission(self, row) -> dict:
         sql = """
         INSERT INTO commissions(timestamp, email, twitch, twitter, discord, 
-            reference_images, description, expression, notes, artist_choice, if_queue_is_full) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            reference_images, description, expression, notes, artist_choice, if_queue_is_full, name) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *;
         """
         values = row.copy()
-        if len(values) == 10:
-            values.append(None)
         print(f"Adding to DB: {values}")
         return self.fetch_dict(sql, values)
 
