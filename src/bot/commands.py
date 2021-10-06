@@ -4,6 +4,7 @@ from discord.ext.commands import Context, Cog, command, Bot
 from discord.ext.tasks import loop
 
 from src.bot.functions import Functions
+from src.db.db import Db
 
 
 class Commands(Cog):
@@ -16,7 +17,7 @@ class Commands(Cog):
         await self.f.init()
         self.update_loop.start()
 
-    @loop(seconds=60)
+    @loop(seconds=300)
     async def update_loop(self):
         await self.f.update_commissions_information()
 
@@ -33,5 +34,12 @@ class Commands(Cog):
         await self.f.cleanup_channels(queue)
 
     @command(name="shuffle")
-    async def cleanup(self, context: Context, queue: Optional[str]=None):
+    async def shuffle(self, context: Context, queue: Optional[str]=None):
         await self.f.cleanup_and_resend_messages(True, queue)
+
+    @command(name="test")
+    async def test(self, context: Context):
+        await self.f.cleanup_channels()
+        with Db() as db:
+            commissions = list(db.get_all_commissions())
+            await self.f.send_commission_embed(db, commissions[1], set_counter=0)

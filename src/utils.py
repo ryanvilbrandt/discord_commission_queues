@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
-from typing import List, Dict, Union
+from enum import Enum
+from typing import List, Dict, Union, NamedTuple, Tuple
 
 from discord import Embed
 
@@ -39,23 +40,56 @@ COLORS = [
 ]
 
 
+class StatusTuple(NamedTuple):
+    color: int
+    name: str
+    emoji: str
+
+
+class Status(Enum):
+    ClaimableAnyone = StatusTuple(0x55ACEE, "Claimable by Anyone", "🔵")
+    ClaimableExclusive = StatusTuple(0xAA8ED6, "Claimable Only by {}", "🟣")
+    Invoiced = StatusTuple(0xFDCB58, "Invoiced", "🟡")
+    Paid = StatusTuple(0x78B159, "Paid", "🟢")
+    Finished = StatusTuple(0xE6E7E8, "Done", "⚪")
+
+
 class BotError(Exception):
     pass
 
 
-def build_embed(timestamp: str, email: str, counter: int, description: str, expression: str, notes: str,
+def build_embed(timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
                 reference_images: str, artist_choice: str, twitch: str, twitter: str, discord: str, hidden: bool,
-                **kwargs) -> Embed:
+                allow_any_artist: bool, invoiced: bool, paid: bool, finished: bool, **kwargs) -> Tuple[str, Embed]:
+    print("Unused kwargs: {}".format(kwargs))
+
+    if finished:
+        status = Status.Finished
+    elif paid:
+        status = Status.Paid
+    elif invoiced:
+        status = Status.Invoiced
+    elif allow_any_artist:
+        status = Status.ClaimableAnyone
+    else:
+        status = Status.ClaimableExclusive
+
+    color = status.value.color
+    status_name = status.value.name
+    if status == Status.ClaimableExclusive:
+        status_name = status_name.format(artist_choice)
+    emoji = status.value.emoji
+
+    content = "{} Commission for {}".format(emoji, name)
+
     embed = Embed(
         type="rich",
-        title=f"Commission from {email}",
         description="",
-        color=get_color(counter),
+        color=color,
         timestamp=ts_to_dt(timestamp)
     )
-    if hidden:
-        embed.description = "Hidden, to show click the Show button below"
-    else:
+    if not hidden:
+        embed.add_field(name="Status", value=status_name, inline=False)
         if description:
             embed.add_field(name="Character description", value=description, inline=False)
         if expression:
@@ -74,8 +108,10 @@ def build_embed(timestamp: str, email: str, counter: int, description: str, expr
         url = get_url(reference_images)
         if url:
             embed.set_thumbnail(url=url)
+    else:
+        embed.description = "<hidden>"
 
-    return embed
+    return content, embed
 
 
 def add_field(fields: List[Dict[str, Union[str, bool]]], name: str, value: str, inline=False, force_add=False):

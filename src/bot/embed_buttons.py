@@ -63,10 +63,10 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
         view.processing_callback = False
 
     async def edit_message(self, interaction: discord.Interaction, commission: dict):
-        embed = build_embed(**commission)
+        content, embed = build_embed(**commission)
         view: EmbedButtonsView = self.view
         new_view = EmbedButtonsView(view.functions_obj, view.claimable, **commission)
-        await interaction.response.edit_message(embed=embed, view=new_view)
+        await interaction.response.edit_message(content=content, embed=embed, view=new_view)
 
 
 class EmbedButtonsView(discord.ui.View):

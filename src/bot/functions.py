@@ -57,7 +57,7 @@ class Functions:
                 print(f"Sending {commission}")
                 await self.send_commission_embed(db, commission, set_counter=False)
 
-    async def cleanup_channels(self, queue: bool=None):
+    async def cleanup_channels(self, queue: str=None):
         for channel_name, channel_id in self.channels.items():
             if queue is not None and channel_name != queue:
                 continue
@@ -67,9 +67,9 @@ class Functions:
                 if message.author.name == "CommissionQueueBot":
                     await message.delete()
 
-    async def send_to_channel(self, channel_name: str, embed: Embed, view: Optional[View]) -> Message:
+    async def send_to_channel(self, channel_name: str, content: str, embed: Embed, view: Optional[View]) -> Message:
         channel = self.bot.get_channel(self.channels[channel_name])
-        return await channel.send(embed=embed, view=view)
+        return await channel.send(content=content, embed=embed, view=view)
 
     async def delete_message(self, channel_name: str, message_id: int):
         channel = self.bot.get_channel(self.channels[channel_name])
@@ -133,10 +133,10 @@ class Functions:
             # Update the counter value on the given commission, so it's passed to the build embed
             commission = db.update_commission_counter(timestamp, email, counter)
         # Build the embed and view data
-        embed = build_embed(**commission)
+        content, embed = build_embed(**commission)
         view = EmbedButtonsView(self, commission["assigned_to"] is None, **commission)
         # Send message to channel
-        message = await self.send_to_channel(channel_name, embed, view)
+        message = await self.send_to_channel(channel_name, content, embed, view)
         # Update the message ID for editing later
         db.update_message_id(timestamp, email, channel_name, message_id=message.id)
 
