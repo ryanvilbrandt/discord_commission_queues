@@ -1,5 +1,3 @@
-import logging
-import sys
 from typing import Optional
 
 from discord.ext.commands import Context, Cog, command, Bot
@@ -19,7 +17,7 @@ class Commands(Cog):
         await self.f.init()
         self.update_loop.start()
 
-    @loop(seconds=300)
+    @loop(seconds=60)
     async def update_loop(self):
         await self.f.update_commissions_information(False)
 
