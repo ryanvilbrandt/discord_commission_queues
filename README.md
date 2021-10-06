@@ -4,9 +4,9 @@ A Discord bot to manage commission queues for multiple artists, from commission 
 
 ## Quick Start
 
-1. Make a copy of `credentials.json-dict` in the `conf` folder and remove the `-dist`.
+1. Make a copy of `config.json-dict` in the `conf` folder and remove the `-dist`.
 2. Update `token` to be the bot token.
-3. Update `master_id` to be the numerical ID of the user who has power to shutdown the bot.
+3. Update `master_id` to be a list of the numerical IDs of the users who have power to shut down the bot.
 4. Install Python 3.9+
 5. Run `pip install -r requirements.txt`
 6. Run `src/db/build_db.py` to create the database.

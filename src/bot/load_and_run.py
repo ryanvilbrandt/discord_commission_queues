@@ -4,18 +4,22 @@ from time import sleep
 import discord
 from discord.ext.commands import Bot, Context
 
+from src import utils
 from src.bot import functions
 from src.bot.commands import Commands
 
 VERSION = (0, 1, 0)
 
-with open("conf/credentials.json") as f:
-    json = loads(f.read())
-    PREFIX = json["prefix"]
-    TOKEN = json["token"]
-    MASTER_IDS = json["master_id"]
-    functions.GOOGLE_SHEETS_DEVELOPER_KEY = json["developer_key"]
-    functions.SHEET_ID = json["spreadsheet_id"]
+with open("conf/config.json") as f:
+    j = loads(f.read())
+    settings = j["settings"]
+    PREFIX = settings["prefix"]
+    TOKEN = settings["token"]
+    MASTER_IDS = settings["master_id"]
+    functions.GOOGLE_SHEETS_DEVELOPER_KEY = settings["developer_key"]
+    functions.SHEET_ID = settings["spreadsheet_id"]
+    utils.CHANNELS = j["channels"]
+    utils.USERS = j["users"]
 
 
 def init_bot():

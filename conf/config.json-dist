@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "prefix": "!",
+    "token": "Bot token",
+    "master_id": [],
+    "developer_key": "Google API Developer Key",
+    "spreadsheet_id": "Google Spreadsheet ID"
+  },
+  "channels": {
+    "#incoming-commissions": "!Any Artist",
+    "#voided-commissions": "!Void",
+    "#channel-name1": "Person's Name1",
+    "#channel-name2": "Person's Name2"
+  },
+  "users": {
+    <numeric discord ID>: "Person's Name1",
+    123456789012345678: "Person's Name2"
+  }
+}

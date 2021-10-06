@@ -1,5 +1,4 @@
 from random import shuffle
-from time import sleep
 from typing import Dict, Optional
 
 from discord import Message, Emoji, Embed, Member
@@ -10,7 +9,7 @@ from googleapiclient.discovery import build
 
 from src.bot.embed_buttons import EmbedButtonsView
 from src.db.db import Db
-from src.utils import CHANNELS, build_embed, get_channel_name, get_name_by_member_id
+from src import utils
 
 GOOGLE_SHEETS_DEVELOPER_KEY = None
 SHEET_ID = None
@@ -32,7 +31,7 @@ class Functions:
     def save_channels(self):
         channel_list = self.bot.get_all_channels()
         for channel in channel_list:
-            if channel.name in CHANNELS:
+            if channel.name in utils.CHANNELS:
                 self.channels[channel.name] = channel.id
         print(self.channels)
 
@@ -130,9 +129,9 @@ class Functions:
 
     async def send_commission_embed(self, db: Db, commission: Dict, set_counter=True):
         if commission["assigned_to"] is None:
-            channel_name = get_channel_name("!Any artist" if commission["allow_any_artist"] else "!Void")
+            channel_name = utils.get_channel_name("!Any artist" if commission["allow_any_artist"] else "!Void")
         else:
-            channel_name = get_channel_name(commission["assigned_to"])
+            channel_name = utils.get_channel_name(commission["assigned_to"])
         timestamp, email = commission["timestamp"], commission["email"]
         if set_counter:
             # Increment channel counter, to track how many messages were sent on this channel
@@ -140,7 +139,7 @@ class Functions:
             # Update the counter value on the given commission, so it's passed to the build embed
             commission = db.update_commission_counter(timestamp, email, counter)
         # Build the embed and view data
-        content, embed = build_embed(**commission)
+        content, embed = utils.build_embed(**commission)
         view = EmbedButtonsView(self, commission["assigned_to"] is None, **commission)
         # Send message to channel
         message = await self.send_to_channel(channel_name, content, embed, view)
@@ -159,7 +158,7 @@ class Functions:
                 )
                 return False
             # The claiming user must have a channel assigned to them
-            name = get_name_by_member_id(member.id)
+            name = utils.get_name_by_member_id(member.id)
             if name is None:
                 print(f"An invalid user ({member}) tried to claim a commission.")
                 await member.send("You cannot claim commissions.", delete_after=60)
@@ -170,8 +169,8 @@ class Functions:
             old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
             db.assign_commission(name, message_id=message_id)
             commission = db.accept_commission(message_id, accepted=True)
-            await self.send_commission_embed(db, commission)
             await self.delete_message(old_channel_name, old_message_id)
+            await self.send_commission_embed(db, commission)
             return True
 
     # @staticmethod

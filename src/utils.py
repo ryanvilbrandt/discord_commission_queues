@@ -5,39 +5,9 @@ from typing import NamedTuple, Tuple
 
 from discord import Embed
 
-CHANNELS = {
-    "incoming-commissions": "!Any artist",
-    "caytlins-queue": "Caytlin Vilbrandt",
-    "izzys-queue": "IzzySqueakzy",
-    "laurens-queue": "Lauren Pierre",
-    "scotts-queue": "Scott Fraser",
-    "knacks-queue": "Knack Whittle",
-    "jonas-queue": "Jonas",
-    "voided-queue": "!Void",
-    "bot-spam": "Trick-Candle",
-}
+CHANNELS = {}
 
-USERS = {
-    255143773577805836: "Caytlin Vilbrandt",
-    122346745773424640: "IzzySqueakzy",
-    460147480856756234: "Lauren Pierre",
-    111219993600892928: "Scott Fraser",
-    308753138872221696: "Knack Whittle",
-    188456317004939264: "Jonas",
-    235133902895841281: "Trick-Candle"
-}
-
-
-COLORS = [
-    0xFF0000,
-    0xFFA500,
-    0xFFFF00,
-    0x008000,
-    0x00FFFF,
-    0x0000FF,
-    0x800080,
-    0xEE82EE,
-]
+USERS = {}
 
 
 class StatusTuple(NamedTuple):
@@ -129,10 +99,6 @@ def add_field(embed: Embed, name: str, value: str, inline=False, force_add=False
     return message_truncated
 
 
-def get_color(counter: int) -> int:
-    return COLORS[counter % len(COLORS)]
-
-
 def get_url(text: str) -> str:
     """
     Gets first URL-like string from the given text
@@ -155,4 +121,4 @@ def ts_to_dt(ts):
 
 
 def get_name_by_member_id(member_id: int):
-    return USERS.get(member_id)
+    return USERS.get(str(member_id))
