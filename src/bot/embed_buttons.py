@@ -41,9 +41,9 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
             functions = view.functions_obj
             message_id = interaction.message.id
             if self.action == ButtonAction.Reject:
-                await functions.reject_commission(interaction.user, message_id)
+                commission = await functions.reject_commission(interaction.user, message_id)
             elif self.action == ButtonAction.Claim:
-                await functions.claim_commission(interaction.user, message_id)
+                commission = await functions.claim_commission(interaction.user, message_id)
             else:
                 if self.action == ButtonAction.Accept:
                     coroutine = functions.accept_commission(interaction.user, message_id)
@@ -62,6 +62,16 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
                     raise ValueError(self.action)
                 if commission:
                     await self.edit_message(interaction, commission)
+            if self.action not in [ButtonAction.Show, ButtonAction.Hide]:
+                await view.functions_obj.send_to_channel(
+                    "bot-spam",
+                    "Commission #{} has been {} by {} in channel {}".format(
+                        commission["id"],
+                        self.action.name,
+                        interaction.user.name,
+                        interaction.channel.name
+                    )
+                )
         finally:
             view.processing_callback = False
 

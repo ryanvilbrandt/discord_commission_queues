@@ -1,4 +1,3 @@
-from json import loads
 from time import sleep
 
 import discord
@@ -10,16 +9,13 @@ from src.bot.commands import Commands
 
 VERSION = (0, 1, 0)
 
-with open("conf/config.json") as f:
-    j = loads(f.read())
-    settings = j["settings"]
-    PREFIX = settings["prefix"]
-    TOKEN = settings["token"]
-    MASTER_IDS = settings["master_id"]
-    functions.GOOGLE_SHEETS_DEVELOPER_KEY = settings["developer_key"]
-    functions.SHEET_ID = settings["spreadsheet_id"]
-    utils.CHANNELS = j["channels"]
-    utils.USERS = j["users"]
+j = utils.load_config()
+settings = j["settings"]
+PREFIX = settings["prefix"]
+TOKEN = settings["token"]
+MASTER_IDS = settings["master_id"]
+functions.GOOGLE_SHEETS_DEVELOPER_KEY = settings["developer_key"]
+functions.SHEET_ID = settings["spreadsheet_id"]
 
 
 def init_bot():

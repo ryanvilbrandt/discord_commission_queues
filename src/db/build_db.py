@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from src.utils import CHANNELS
+from src.utils import CHANNELS, load_config
 
 
 def open_db():
@@ -95,8 +95,9 @@ def create_tables(cur):
     """
     cur.executescript(sql)
 
+    j = load_config("../../conf/config.json")
     sql = "INSERT INTO channels(channel_name) VALUES (?);"
-    cur.executemany(sql, [[c] for c in CHANNELS.keys()])
+    cur.executemany(sql, [[c] for c in j["channels"].keys()])
 
     set_version(cur, 1)
 

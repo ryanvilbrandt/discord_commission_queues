@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from enum import Enum
+from json import loads
 from typing import NamedTuple, Tuple
 
 from discord import Embed
@@ -8,6 +9,15 @@ from discord import Embed
 CHANNELS = {}
 
 USERS = {}
+
+
+def load_config(filepath="conf/config.json") -> dict:
+    global CHANNELS, USERS
+    with open(filepath) as f:
+        j = loads(f.read())
+        CHANNELS = j["channels"]
+        USERS = j["users"]
+    return j
 
 
 class StatusTuple(NamedTuple):
