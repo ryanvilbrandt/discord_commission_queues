@@ -63,15 +63,15 @@ class EmbedButton(discord.ui.Button['EmbedButtonsRow']):
                 if commission:
                     await self.edit_message(interaction, commission)
             if self.action not in [ButtonAction.Show, ButtonAction.Hide]:
-                await view.functions_obj.send_to_channel(
-                    "bot-spam",
-                    "Commission #{} has been {} by {} in channel {}".format(
-                        commission["id"],
-                        self.action.name,
-                        interaction.user.name,
-                        interaction.channel.name
-                    )
+                # Send update message
+                await view.functions_obj.send_status_update(
+                    self.action,
+                    commission["id"],
+                    interaction.user.name,
+                    interaction.channel.name
                 )
+                # Update commissions status message
+                await view.functions_obj.send_commissions_status()
         finally:
             view.processing_callback = False
 

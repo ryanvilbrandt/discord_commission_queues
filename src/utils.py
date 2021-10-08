@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from json import loads
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Tuple, List
 
 from discord import Embed
 
@@ -24,39 +24,44 @@ class StatusTuple(NamedTuple):
     color: int
     name: str
     emoji: str
+    sort_key: int
 
 
 class Status(Enum):
-    ClaimableAnyone = StatusTuple(0x55ACEE, "Claimable by Anyone", "🔵")
-    ClaimableExclusive = StatusTuple(0xAA8ED6, "Claimable Only by {}", "🟣")
-    Accepted = StatusTuple(0xF4900C, "Claimed", "🟠")
-    Invoiced = StatusTuple(0xFDCB58, "Invoiced", "🟡")
-    Paid = StatusTuple(0x78B159, "Paid", "🟢")
-    Finished = StatusTuple(0xE6E7E8, "Done", "⚪")
+    ClaimableAnyone = StatusTuple(0x55ACEE, "Claimable by Anyone", "🔵", 0)
+    ClaimableExclusive = StatusTuple(0xAA8ED6, "Claimable Only by {}", "🟣", 1)
+    Accepted = StatusTuple(0xF4900C, "Claimed", "🟠", 2)
+    Invoiced = StatusTuple(0xFDCB58, "Invoiced", "🟡", 3)
+    Paid = StatusTuple(0x78B159, "Paid", "🟢", 4)
+    Finished = StatusTuple(0xE6E7E8, "Done", "⚪", 5)
 
 
 class BotError(Exception):
     pass
 
 
+def get_status(allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool, **kwargs) -> Status:
+    if finished:
+        return Status.Finished
+    elif paid:
+        return Status.Paid
+    elif invoiced:
+        return Status.Invoiced
+    elif accepted:
+        return Status.Accepted
+    elif allow_any_artist:
+        return Status.ClaimableAnyone
+    else:
+        return Status.ClaimableExclusive
+
+
 def build_embed(id: int, timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
                 reference_images: str, artist_choice: str, twitch: str, twitter: str, discord: str, hidden: bool,
-                allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool, 
+                allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool,
                 **kwargs) -> Tuple[str, Embed]:
     # print("Unused kwargs: {}".format(kwargs))
 
-    if finished:
-        status = Status.Finished
-    elif paid:
-        status = Status.Paid
-    elif invoiced:
-        status = Status.Invoiced
-    elif accepted:
-        status = Status.Accepted
-    elif allow_any_artist:
-        status = Status.ClaimableAnyone
-    else:
-        status = Status.ClaimableExclusive
+    status = get_status(allow_any_artist, accepted, invoiced, paid, finished)
 
     color = status.value.color
     status_name = status.value.name
@@ -123,6 +128,25 @@ def get_url(text: str) -> str:
     """
     m = re.search(r"(?P<url>https?://[^\s'\",]+)", text)
     return m.group("url") if m else None
+
+
+def build_commissions_status_page(commissions: List[dict]) -> str:
+    s = "Commissions status:\n```"
+    row_fmt = "\n {:^24} | {:^36} | {:^20}"
+    s += row_fmt.format("NAME", "STATUS", "ASSIGNED TO")
+    row_fmt = row_fmt.replace("^", "<")
+    for commission in commissions:
+        commission["status"] = get_status(**commission)
+    sorted_commissions = sorted(commissions, key=lambda c: c["status"].value.sort_key)
+    for commission in sorted_commissions:
+        status_name = commission["status"].value.name.format(commission["assigned_to"])
+        s += row_fmt.format(
+            commission["name"],
+            "{} {}".format(commission["status"].value.emoji, status_name),
+            str(commission["assigned_to"])
+        )
+    s += "\n```"
+    return s
 
 
 def get_channel_name(i_want_this_artist: str) -> str:

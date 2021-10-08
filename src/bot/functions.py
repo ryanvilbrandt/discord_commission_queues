@@ -1,3 +1,5 @@
+import sys
+import traceback
 from random import shuffle
 from typing import Dict, Optional
 
@@ -7,9 +9,9 @@ from discord.ui import View
 from discord.utils import get as discord_get
 from googleapiclient.discovery import build
 
+from src import utils
 from src.bot.embed_buttons import EmbedButtonsView
 from src.db.db import Db
-from src import utils
 
 GOOGLE_SHEETS_DEVELOPER_KEY = None
 SHEET_ID = None
@@ -48,10 +50,10 @@ class Functions:
 
     async def cleanup_and_resend_messages(self, randomize=True, queue=None):
         channels_list = [queue] if queue else list(self.channels.keys())
-        for channel_name in channels_list:
-            await self.cleanup_channels(channel_name)
-            print(f"Resending commissions for {channel_name}...")
-            with Db() as db:
+        with Db() as db:
+            for channel_name in channels_list:
+                await self.cleanup_channels(channel_name)
+                print(f"Resending commissions for {channel_name}...")
                 commissions = list(db.get_all_commissions_for_queue(channel_name) if channel_name
                                    else db.get_all_commissions())
                 if randomize:
@@ -62,6 +64,7 @@ class Functions:
                         continue
                     await self.send_commission_embed(db, commission, set_counter=False)
                     # sleep(0.750)
+        await self.send_commissions_status()
 
     async def cleanup_channels(self, queue: str=None):
         for channel_name, channel_id in self.channels.items():
@@ -75,13 +78,40 @@ class Functions:
                 if message.author.name == "CommissionQueueBot":
                     await message.delete()
 
-    async def send_to_channel(self, channel_name: str, content: str, embed: Embed=None, 
+    async def send_to_channel(self, channel_name: str, content: str, embed: Embed=None,
                               view: Optional[View]=None) -> Message:
         channel = self.bot.get_channel(self.channels[channel_name])
         if embed and view:
             return await channel.send(content=content, embed=embed, view=view)
         else:
             return await channel.send(content=content)
+
+    async def send_status_update(self, action_name: str, commission_id: id, user_name: str, channel_name: str):
+        await self.send_to_channel(
+            "bot-spam",
+            "Commission #{} has been {} by {} in channel {}".format(
+                commission_id,
+                action_name,
+                user_name,
+                channel_name
+            )
+        )
+
+    async def send_commissions_status(self):
+        try:
+            with Db() as db:
+                commissions = list(db.get_all_commissions())
+            content = utils.build_commissions_status_page(commissions)
+            channel = self.bot.get_channel(self.channels[utils.get_channel_name("!Status")])
+            async for message in channel.history():
+                if message.author.name == "CommissionQueueBot" and message.content.startswith("Commissions status:"):
+                    await message.edit(content=content)
+                    break
+            else:
+                await channel.send(content=content)
+        except Exception:
+            print("Failed to generate commissions status page.", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
     async def delete_message(self, channel_name: str, message_id: int):
         channel = self.bot.get_channel(self.channels[channel_name])
