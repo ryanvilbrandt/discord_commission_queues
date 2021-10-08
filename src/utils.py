@@ -29,6 +29,7 @@ class StatusTuple(NamedTuple):
 class Status(Enum):
     ClaimableAnyone = StatusTuple(0x55ACEE, "Claimable by Anyone", "🔵")
     ClaimableExclusive = StatusTuple(0xAA8ED6, "Claimable Only by {}", "🟣")
+    Accepted = StatusTuple(0xF4900C, "Claimed", "🟠")
     Invoiced = StatusTuple(0xFDCB58, "Invoiced", "🟡")
     Paid = StatusTuple(0x78B159, "Paid", "🟢")
     Finished = StatusTuple(0xE6E7E8, "Done", "⚪")
@@ -40,7 +41,8 @@ class BotError(Exception):
 
 def build_embed(id: int, timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
                 reference_images: str, artist_choice: str, twitch: str, twitter: str, discord: str, hidden: bool,
-                allow_any_artist: bool, invoiced: bool, paid: bool, finished: bool, **kwargs) -> Tuple[str, Embed]:
+                allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool, 
+                **kwargs) -> Tuple[str, Embed]:
     # print("Unused kwargs: {}".format(kwargs))
 
     if finished:
@@ -49,6 +51,8 @@ def build_embed(id: int, timestamp: str, name: str, email: str, description: str
         status = Status.Paid
     elif invoiced:
         status = Status.Invoiced
+    elif accepted:
+        status = Status.Accepted
     elif allow_any_artist:
         status = Status.ClaimableAnyone
     else:
@@ -58,6 +62,8 @@ def build_embed(id: int, timestamp: str, name: str, email: str, description: str
     status_name = status.value.name
     if status == Status.ClaimableExclusive:
         status_name = status_name.format(artist_choice)
+    if not allow_any_artist:
+        status_name += " 🌟"
     emoji = status.value.emoji
 
     content = "{} Commission for {} (#{} {})".format(emoji, name, id, email)
