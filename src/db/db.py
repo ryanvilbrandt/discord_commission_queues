@@ -2,7 +2,7 @@ import sqlite3
 from collections import OrderedDict
 from typing import List, Optional
 
-VERSION_NEEDED = 1
+VERSION_NEEDED = 2
 
 
 class Db:
@@ -70,7 +70,7 @@ class Db:
         RETURNING *;
         """
         values = row.copy()
-        print(f"Adding to DB: {values}")
+        # print(f"Adding to DB: {values}")
         return self.fetch_dict(sql, values)
 
     def get_commission_by_email(self, timestamp: str, email: str) -> Optional[dict]:
@@ -124,6 +124,11 @@ class Db:
     def set_allow_any_artist(self, allow_any_artist: bool, timestamp: str=None, email: str=None) -> dict:
         sql = "UPDATE commissions SET allow_any_artist=? WHERE timestamp=? AND email=? RETURNING *;"
         params = [allow_any_artist, timestamp, email]
+        return self.fetch_dict(sql, params)
+
+    def set_specialty(self, specialty: bool, timestamp: str=None, email: str=None) -> dict:
+        sql = "UPDATE commissions SET specialty=? WHERE timestamp=? AND email=? RETURNING *;"
+        params = [specialty, timestamp, email]
         return self.fetch_dict(sql, params)
 
     def accept_commission(self, message_id: int, accepted=True):

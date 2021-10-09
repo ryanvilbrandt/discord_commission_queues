@@ -102,6 +102,22 @@ def create_tables(cur):
     set_version(cur, 1)
 
 
+def add_specialty_column(cur):
+    if get_version(cur) >= 2:
+        print("Skipping adding 'specialty' column...")
+        return
+
+    print("Adding 'specialty' column...")
+
+    sql = """
+    ALTER TABLE commissions
+    ADD COLUMN specialty BOOLEAN DEFAULT FALSE;
+    """
+    cur.executescript(sql)
+
+    set_version(cur, 2)
+
+
 def show_tables(cur):
     sql = "SELECT sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
     for row in cur.execute(sql).fetchall():
@@ -111,8 +127,9 @@ def show_tables(cur):
 def main():
     db, cur = open_db()
 
-    drop_tables(cur)
+    # drop_tables(cur)
     create_tables(cur)
+    add_specialty_column(cur)
     db.commit()
 
     show_tables(cur)

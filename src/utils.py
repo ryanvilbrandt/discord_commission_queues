@@ -57,7 +57,7 @@ def get_status(allow_any_artist: bool, accepted: bool, invoiced: bool, paid: boo
 
 def build_embed(id: int, timestamp: str, name: str, email: str, description: str, expression: str, notes: str,
                 reference_images: str, artist_choice: str, twitch: str, twitter: str, discord: str, hidden: bool,
-                allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool,
+                allow_any_artist: bool, accepted: bool, invoiced: bool, paid: bool, finished: bool, specialty: bool,
                 **kwargs) -> Tuple[str, Embed]:
     # print("Unused kwargs: {}".format(kwargs))
 
@@ -71,7 +71,11 @@ def build_embed(id: int, timestamp: str, name: str, email: str, description: str
         status_name += " 🌟"
     emoji = status.value.emoji
 
-    content = "{} Commission for {} (#{} {})".format(emoji, name, id, email)
+    if specialty:
+        commission_type = ":frame_photo: Specialty commission"
+    else:
+        commission_type = "Commission"
+    content = "{} {} for {} (#{})".format(emoji, commission_type, name, id)
 
     embed = Embed(
         type="rich",
@@ -132,19 +136,28 @@ def get_url(text: str) -> str:
 
 def build_commissions_status_page(commissions: List[dict]) -> str:
     s = "Commissions status:\n```"
-    row_fmt = "\n {:^24} | {:^36} | {:^20}"
-    s += row_fmt.format("NAME", "STATUS", "ASSIGNED TO")
+    row_fmt = "\n {:^02} | {:^24} | {:^36} | {:^20}"
+    s += row_fmt.format("ID", "NAME", "STATUS", "ASSIGNED TO")
     row_fmt = row_fmt.replace("^", "<")
     for commission in commissions:
         commission["status"] = get_status(**commission)
     sorted_commissions = sorted(commissions, key=lambda c: c["status"].value.sort_key)
+    finished_commissions = 0
     for commission in sorted_commissions:
-        status_name = commission["status"].value.name.format(commission["assigned_to"])
+        if commission["status"] == Status.Finished:
+            finished_commissions += 1
+            continue
+        if commission["channel_name"] == "voided-queue":
+            status_name = "Voided"
+        else:
+            status_name = commission["status"].value.name.format(commission["assigned_to"])
         s += row_fmt.format(
+            commission["id"],
             commission["name"],
             "{} {}".format(commission["status"].value.emoji, status_name),
             str(commission["assigned_to"])
         )
+    s += "\n\nFinished commissions: {}".format(finished_commissions)
     s += "\n```"
     return s
 

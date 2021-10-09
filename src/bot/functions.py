@@ -1,7 +1,7 @@
 import sys
 import traceback
 from random import shuffle
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from discord import Message, Emoji, Embed, Member
 from discord.ext.commands import Bot
@@ -59,7 +59,7 @@ class Functions:
                 if randomize:
                     shuffle(commissions)
                 for commission in commissions:
-                    print(f"Sending {commission}")
+                    # print(f"Sending {commission}")
                     if commission["finished"]:
                         continue
                     await self.send_commission_embed(db, commission, set_counter=False)
@@ -119,7 +119,7 @@ class Functions:
         await message.delete()
 
     async def update_commissions_information(self, randomize=True):
-        rows = self.get_commissions_info_from_spreadsheet()
+        rows = self.get_standard_commissions() + self.get_special_commissions()
         if randomize:
             shuffle(rows)
         commissions_to_send = []
@@ -141,6 +141,7 @@ class Functions:
                             channel_name,
                         )
                     )
+        await self.send_commissions_status()
         print("Done processing new commissions")
 
     @staticmethod
@@ -155,13 +156,25 @@ class Functions:
             assigned_to = commission["artist_choice"]
         commission = db.assign_commission(assigned_to, timestamp, email)
         # Set allow_any_artist flag
-        allow_any_artist = "void" not in (commission.get("if_queue_is_full") or "").lower()
-        return db.set_allow_any_artist(allow_any_artist, timestamp, email)
+        allow_any_artist = not commission.get("if_queue_is_full") or \
+                           "any artist" in (commission.get("if_queue_is_full") or "").lower()
+        commission = db.set_allow_any_artist(allow_any_artist, timestamp, email)
+        specialty = "specialty" in (commission.get("if_queue_is_full") or "").lower()
+        return db.set_specialty(specialty, timestamp, email)
+
+    def get_standard_commissions(self):
+        return self.get_commissions_info_from_spreadsheet("Form Responses 1!A2:M")
+
+    def get_special_commissions(self):
+        commissions_list = self.get_commissions_info_from_spreadsheet("Form Responses 2!A2:M")
+        for commission in commissions_list:
+            commission[-3] = commission[-3].split(" (")[0]
+            commission[-2] = "Specialty request"
+        return commissions_list
 
     @staticmethod
-    def get_commissions_info_from_spreadsheet():
+    def get_commissions_info_from_spreadsheet(sheet_range) -> List:
         print("Loading Google Sheet of commission info...")
-        sheet_range = "Form Responses 1!A2:M"
         service = build('sheets', 'v4', developerKey=GOOGLE_SHEETS_DEVELOPER_KEY)
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -201,18 +214,26 @@ class Functions:
                     delete_after=60
                 )
                 return None
-            # The claiming user must have a channel assigned to them
-            name = utils.get_name_by_member_id(member.id)
-            if name is None:
-                print(f"An invalid user ({member}) tried to claim a commission.")
-                await member.send("You cannot claim commissions.", delete_after=60)
-                return None
-            # If the commission is limited to a specific artist, the claiming artist must be that artist
-            if not commission["allow_any_artist"] and commission["artist_choice"] != name:
-                return None
+            # If the commission is exclusive and in the voided-queue, claim will give it back to the original
+            # requested artist
+            if not commission["allow_any_artist"] and commission["channel_name"] == "voided-queue":
+                name = commission["artist_choice"]
+                auto_accept = False
+            else:
+                # The claiming user must have a channel assigned to them
+                name = utils.get_name_by_member_id(member.id)
+                if name is None:
+                    print(f"An invalid user ({member}) tried to claim a commission.")
+                    await member.send("You cannot claim commissions.", delete_after=60)
+                    return None
+                # If the commission is limited to a specific artist, the claiming artist must be that artist
+                if not commission["allow_any_artist"] and commission["artist_choice"] != name:
+                    return None
+                auto_accept = True
             old_channel_name, old_message_id = commission["channel_name"], commission["message_id"]
-            db.assign_commission(name, message_id=message_id)
-            commission = db.accept_commission(message_id, accepted=True)
+            commission = db.assign_commission(name, message_id=message_id)
+            if auto_accept:
+                commission = db.accept_commission(message_id, accepted=True)
             await self.delete_message(old_channel_name, old_message_id)
             await self.send_commission_embed(db, commission)
             return commission
